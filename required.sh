@@ -1,4 +1,5 @@
 pkg update && pkg upgrade -y
+pkg install wget -y
 pkg install openjdk-21 -y
 pkg install radare2 -y
 pkg install android-tools -y
