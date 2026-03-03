@@ -5,3 +5,10 @@ pkg install android-tools -y
 pkg install aapt -y
 pkg install zip unzip -y
 pkg install curl -y
+pkg install python3 -y
+pip3 install requests
+clear
+echo "now run script with:"
+echo "bash aio-mod"
+echo ""
+echo "thank you :3"
