@@ -1,9 +1,7 @@
 # toolkit
-ALL-IN-ONE MOD TOOLKIT PRO
+# ALL-IN-ONE MOD TOOLKIT PRO
 
 Script gabut.
-
-Tool ini dibuat untuk mempermudah proses patching, signing, dan bypass signature dengan tetap mempertahankan signature original.
 
 ---
 
