@@ -6,3 +6,4 @@ pkg install aapt -y
 pkg install zip unzip -y
 pkg install curl -y
 pkg install python3 -y
+pip3 install curl
