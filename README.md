@@ -1,4 +1,4 @@
-# ALL-IN-ONE MOD TOOLKIT PRO
+# all-in-one mod toolkit pro
 
 Script gabut.
 
