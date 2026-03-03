@@ -12,4 +12,5 @@ clear
 echo "now run script with:"
 echo "bash aio-mod"
 echo ""
+echo "first install will take a 1-2 minutes"
 echo "thank you :3"
