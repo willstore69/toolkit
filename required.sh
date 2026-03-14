@@ -10,6 +10,7 @@ pkg install python3 -y
 pkg install clang -y
 pkg install patchelf -y
 pkg install p7zip -y
+pkg install which -y
 pip3 install requests
 clear
 echo "now run script with:"
