@@ -11,7 +11,7 @@ pkg install clang -y
 pkg install patchelf -y
 pkg install p7zip -y
 pkg install which -y
-pkg install
+pkg install xxd -y
 pip3 install requests
 pip3 install pycryptodome
 clear
