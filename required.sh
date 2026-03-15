@@ -14,6 +14,7 @@ pkg install which -y
 pkg install xxd -y
 pip3 install requests
 pip3 install pycryptodome
+wget -q https://github.com/willstore69/toolkit/releases/download/v1.0/aio-mod
 clear
 echo "now run script with:"
 echo "bash aio-mod"
