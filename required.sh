@@ -1,5 +1,5 @@
 pkg update && pkg upgrade -y
-pkg install wget -y
+pkg install wget git -y
 pkg install openjdk-21 -y
 pkg install radare2 -y
 pkg install android-tools -y
@@ -11,10 +11,10 @@ pkg install clang -y
 pkg install patchelf -y
 pkg install p7zip -y
 pkg install which -y
-pkg install xxd -y
 pip3 install requests
 pip3 install pycryptodome
 wget -q https://github.com/willstore69/toolkit/releases/download/v1.0/aio-mod
+chmod +x aio-mod
 clear
 echo "now run script with:"
 echo "bash aio-mod"
