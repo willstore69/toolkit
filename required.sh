@@ -11,7 +11,9 @@ pkg install clang -y
 pkg install patchelf -y
 pkg install p7zip -y
 pkg install which -y
+pkg install
 pip3 install requests
+pip3 install pycryptodome
 clear
 echo "now run script with:"
 echo "bash aio-mod"
