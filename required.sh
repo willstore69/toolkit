@@ -13,7 +13,8 @@ pkg install p7zip -y
 pkg install which -y
 pip3 install requests
 pip3 install pycryptodome
-wget -q https://github.com/willstore69/toolkit/releases/download/v1.0/aio-mod
+LATEST=$(curl -s https://api.github.com/repos/willstore69/toolkit/releases/latest | grep "browser_download_url" | grep "aio-mod" | cut -d '"' -f 4)
+wget -q "$LATEST" -O aio-mod
 chmod +x aio-mod
 clear
 echo "now run script with:"
