@@ -18,7 +18,7 @@ wget -q "$LATEST" -O aio-mod
 chmod +x aio-mod
 clear
 echo "now run script with:"
-echo "bash aio-mod"
+echo "./aio-mod"
 echo ""
 echo "first install will take a 1-2 minutes"
 echo "thank you :3"
