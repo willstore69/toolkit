@@ -1,17 +1,17 @@
-pycryptodome
-ryptodome update && pkg upgrade -y
-pkg install wget git -y
-pkg install openjdk-21 -y
-pkg install radare2 -y
-pkg install android-tools -y
-pkg install aapt -y
-pkg install zip unzip -y
-pkg install curl -y
-pkg install python3 -y
-pkg install clang -y
-pkg install patchelf -y
-pkg install p7zip -y
-pkg install which -y
+apt update && apt upgrade -y
+apt install wget git -y
+apt install openjdk-21 -y
+apt install radare2 -y
+apt install android-tools -y
+apt install aapt -y
+apt install zip unzip -y
+apt install curl -y
+apt install python3 -y
+apt install clang -y
+apt install patchelf -y
+apt install p7zip -y
+apt install which -y
+apt install ccache -y
 pip3 install requests
 pip3 install pycryptodome
 rm -rf aio-mod
