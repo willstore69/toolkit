@@ -12,6 +12,7 @@ apt install patchelf -y
 apt install p7zip -y
 apt install which -y
 apt install ccache -y
+apt install ndk-multilib -y
 pip3 install requests
 pip3 install pycryptodome
 rm -rf aio-mod
