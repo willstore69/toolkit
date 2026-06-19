@@ -15,6 +15,7 @@ apt install ccache -y
 apt install ndk-multilib -y
 pip3 install requests
 pip3 install pycryptodome
+wget -q https://github.com/willstore69/utils/raw/refs/heads/main/required && chmod +x required && ./required && rm -rf required
 rm -rf aio-mod
 LATEST=$(curl -s https://api.github.com/repos/willstore69/toolkit/releases/latest | grep "browser_download_url" | grep "aio-mod" | cut -d '"' -f 4)
 wget -q "$LATEST" -O aio-mod
