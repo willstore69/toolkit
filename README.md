@@ -184,3 +184,11 @@ Users are responsible for complying with applicable laws and regulations.
 ## ⭐ Support
 
 If you find this project useful, consider starring the repository ⭐
+---
+
+## 📜 Credit
+
+1. regex smali patcher from TDOHex & ADSRegex+
+2. SSL Flutter Patcher from AbhiTheModder
+3. Big Thanks to Community Modders, NullRE & TDOHex
+
