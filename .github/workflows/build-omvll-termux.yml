@@ -36,7 +36,7 @@ on:
 
 env:
   OMVLL_REF: ${{ inputs.omvll_ref || '1.8.0' }}
-  TERMUX_BOOTSTRAP_URL: https://github.com/termux/termux-packages/releases/download/bootstrap-2025.01.01/bootstrap-aarch64.zip
+  TERMUX_BOOTSTRAP_URL: https://github.com/termux/termux-packages/releases/download/bootstrap-2026.09.27-r1+apt.android-7/bootstrap-aarch64.zip
 
 jobs:
   build:
