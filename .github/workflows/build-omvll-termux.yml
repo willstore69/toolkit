@@ -68,7 +68,7 @@ jobs:
           unzip -q bootstrap-aarch64.zip
           ls
           # symlink resolv.conf agar pkg punya DNS di dalam proot
-          mkdir -p etc
+          mkdir -p etc root
           cp /etc/resolv.conf etc/resolv.conf || true
 
       - name: Install Termux toolchain inside proot
@@ -78,7 +78,8 @@ jobs:
             proot -r "$GITHUB_WORKSPACE/termux-root" \
               -b /dev -b /proc -b /sys \
               -b "$GITHUB_WORKSPACE:/mnt/work" \
-              /usr/bin/env -i HOME=/root TERM=xterm PATH=/usr/bin:/bin \
+            -w /root \
+              /bin/env -i HOME=/root TERM=xterm PATH=/bin PREFIX=/ \
               /bin/bash -lc "$1"
           }
           proot_run 'pkg update -y && pkg install -y clang cmake ninja python git spdlog pybind11 binutils file zip'
@@ -136,7 +137,8 @@ jobs:
           proot -r "$GITHUB_WORKSPACE/termux-root" \
             -b /dev -b /proc -b /sys \
             -b "$GITHUB_WORKSPACE:/mnt/work" \
-            /usr/bin/env -i HOME=/root TERM=xterm PATH=/usr/bin:/bin OMVLL_REF_BUILD="${{ env.OMVLL_REF }}" \
+            -w /root \
+            /bin/env -i HOME=/root TERM=xterm PATH=/bin PREFIX=/ OMVLL_REF_BUILD="${{ env.OMVLL_REF }}" \
             /bin/bash /mnt/work/termux-build.sh
 
       - name: Probe plugin with Termux clang (fail-closed)
@@ -154,7 +156,8 @@ jobs:
           proot -r "$GITHUB_WORKSPACE/termux-root" \
             -b /dev -b /proc -b /sys \
             -b "$GITHUB_WORKSPACE:/mnt/work" \
-            /usr/bin/env -i HOME=/root TERM=xterm PATH=/usr/bin:/bin \
+            -w /root \
+            /bin/env -i HOME=/root TERM=xterm PATH=/bin PREFIX=/ \
             /bin/bash /mnt/work/termux-probe.sh
 
       - name: Rename asset with versions
