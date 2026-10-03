@@ -1,0 +1,205 @@
+name: Build O-MVLL Termux plugin (aarch64)
+
+# Membangun plugin LLVM O-MVLL (omvll-ndk.so) yang kompatibel dengan
+# clang Termux di HP (aarch64, bionic), agar build.sh mode cython cepat
+# (tinggal download prebuilt, tanpa compile LLVM dari source di HP).
+#
+# Cara pakai di repo sendiri (mis. willstore69/toolkit):
+#   1. Copy file ini ke .github/workflows/build-omvll-termux.yml
+#   2. Tab Actions -> "Build O-MVLL Termux plugin" -> Run workflow
+#      (atau push tag: omvll-termux-v<BUILD_ID>, mis. omvll-termux-v1)
+#   3. Ambil artefak `omvll-ndk-termux-aarch64`, atau buat Release dari tag
+#      agar build.sh bisa auto-download via AIO_OMVLL_GH_REPO.
+#   4. Di HP: AIO_OMVLL_GH_REPO=<owner>/<repo> bash build.sh aio-mod.py cython
+#
+# Catatan kompatibilitas (PENTING):
+# - Plugin LLVM hanya bisa di-load oleh clang dengan versi LLVM yang SAMA
+#   persis (major.minor). Workflow ini mendeteksi versi clang Termux saat
+#   build dan menuliskannya ke build-info.json + nama file.
+# - Plugin ini me-link libpython versi Python Termux saat build
+#   (mis. libpython3.14.so). Kalau Termux upgrade Python/LLVM, re-run workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      omvll_ref:
+        description: "o-mvll git ref (tag/branch/commit). Default: 1.8.0"
+        required: false
+        default: "1.8.0"
+      release_tag:
+        description: "Buat GitHub Release dari hasil build (kosongkan = tanpa release)"
+        required: false
+        default: ""
+  push:
+    tags:
+      - "omvll-termux-v*"
+
+env:
+  OMVLL_REF: ${{ inputs.omvll_ref || '1.8.0' }}
+  TERMUX_BOOTSTRAP_URL: https://github.com/termux/termux-packages/releases/download/bootstrap-2025.01.01/bootstrap-aarch64.zip
+
+jobs:
+  build:
+    # WAJIB ARM64: plugin harus native aarch64 dan di-link ke bionic/Termux.
+    # x86_64+qemu terlalu lambat untuk build LLVM.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 180
+    steps:
+      - name: Checkout o-mvll source
+        uses: actions/checkout@v4
+        with:
+          repository: open-obfuscator/o-mvll
+          ref: ${{ env.OMVLL_REF }}
+          path: o-mvll
+          fetch-depth: 1
+
+      - name: Install host deps (proot)
+        run: |
+          set -eux
+          sudo apt-get update -y
+          sudo apt-get install -y proot wget unzip curl ninja-build cmake git python3
+
+      - name: Bootstrap Termux rootfs (aarch64)
+        run: |
+          set -eux
+          mkdir -p "$GITHUB_WORKSPACE/termux-root"
+          cd "$GITHUB_WORKSPACE/termux-root"
+          wget -q "$TERMUX_BOOTSTRAP_URL" -O bootstrap-aarch64.zip
+          unzip -q bootstrap-aarch64.zip
+          ls
+          # symlink resolv.conf agar pkg punya DNS di dalam proot
+          mkdir -p etc
+          cp /etc/resolv.conf etc/resolv.conf || true
+
+      - name: Install Termux toolchain inside proot
+        run: |
+          set -eux
+          proot_run() {
+            proot -r "$GITHUB_WORKSPACE/termux-root" \
+              -b /dev -b /proc -b /sys \
+              -b "$GITHUB_WORKSPACE:/mnt/work" \
+              /usr/bin/env -i HOME=/root TERM=xterm PATH=/usr/bin:/bin \
+              /bin/bash -lc "$1"
+          }
+          proot_run 'pkg update -y && pkg install -y clang cmake ninja python git spdlog pybind11 binutils file zip'
+          proot_run 'clang --version | head -n 2; python3 --version; cmake --version | head -n 1'
+          proot_run 'python3 -m pip install -U pip pybind11 2>&1 | tail -n 2 || true'
+          echo "PROOT_OK=1" >> "$GITHUB_ENV"
+
+      - name: Build o-mvll plugin inside Termux proot
+        run: |
+          set -eux
+          cat > "$GITHUB_WORKSPACE/termux-build.sh" <<'EOS'
+          set -eux
+          export HOME=/root
+          SRC=/mnt/work/o-mvll
+          BUILD=/root/omvll-build
+          OUT=/mnt/work/dist
+          rm -rf "$BUILD"
+          mkdir -p "$BUILD" "$OUT"
+          LLVM_VER="$(clang --version | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)"
+          PY_VER="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+          echo "LLVM=$LLVM_VER PY=$PY_VER"
+          echo "$LLVM_VER" > /mnt/work/dist/llvm_version.txt
+          echo "$PY_VER" > /mnt/work/dist/python_version.txt
+          export AIO_TERMUX_LLVM_VERSION="$LLVM_VER"
+          PYBIND_CMAKE="$(python3 -c 'import pybind11, os; print(os.path.join(os.path.dirname(pybind11.__file__), "share", "cmake", "pybind11"))' 2>/dev/null || true)"
+          if [ -z "$PYBIND_CMAKE" ]; then
+            PYBIND_CMAKE="$(python3 -c 'import pybind11; print(pybind11.get_cmake_dir())' 2>/dev/null || true)"
+          fi
+          echo "pybind11 cmake: $PYBIND_CMAKE"
+          cd "$BUILD"
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=clang \
+            ${PYBIND_CMAKE:+-Dpybind11_DIR="$PYBIND_CMAKE"} \
+            "$SRC/src"
+          ninja -j"$(nproc)"
+          ls -la
+          PLUGIN="$(find . -maxdepth 2 -name 'libOMVLL.so' | head -n 1)"
+          test -n "$PLUGIN"
+          cp -f "$PLUGIN" "$OUT/omvll-ndk.so"
+          cp -f "$SRC/dist/sample-omvll-config.py" "$OUT/" 2>/dev/null || true
+          cat > "$OUT/build-info.json" <<EOF2
+          {
+            "omvll_ref": "${OMVLL_REF_BUILD}",
+            "termux_llvm": "$LLVM_VER",
+            "termux_python": "$PY_VER",
+            "built_at": "$(date -u +%FT%TZ)",
+            "target": "aarch64-linux-android (termux, bionic)"
+          }
+          EOF2
+          cat "$OUT/build-info.json"
+          EOS
+          OMVLL_REF_BUILD="${{ env.OMVLL_REF }}" \
+          proot -r "$GITHUB_WORKSPACE/termux-root" \
+            -b /dev -b /proc -b /sys \
+            -b "$GITHUB_WORKSPACE:/mnt/work" \
+            /usr/bin/env -i HOME=/root TERM=xterm PATH=/usr/bin:/bin OMVLL_REF_BUILD="${{ env.OMVLL_REF }}" \
+            /bin/bash /mnt/work/termux-build.sh
+
+      - name: Probe plugin with Termux clang (fail-closed)
+        run: |
+          set -eux
+          cat > "$GITHUB_WORKSPACE/termux-probe.sh" <<'EOS'
+          set -eux
+          echo 'int aio_omvll_probe(void){return 0;}' > /tmp/probe.c
+          AIO_OMVLL_PROFILE=aggressive_compact \
+          clang -Oz -fPIC -c "-fpass-plugin=/mnt/work/dist/omvll-ndk.so" \
+            -target aarch64-linux-android -x c /tmp/probe.c -o /tmp/probe.o
+          echo PROBE_OK
+          ls -la /mnt/work/dist/
+          EOS
+          proot -r "$GITHUB_WORKSPACE/termux-root" \
+            -b /dev -b /proc -b /sys \
+            -b "$GITHUB_WORKSPACE:/mnt/work" \
+            /usr/bin/env -i HOME=/root TERM=xterm PATH=/usr/bin:/bin \
+            /bin/bash /mnt/work/termux-probe.sh
+
+      - name: Rename asset with versions
+        id: pkg
+        run: |
+          set -eux
+          LLVM_VER="$(cat dist/llvm_version.txt)"
+          PY_VER="$(cat dist/python_version.txt)"
+          LLVM_SHORT="$(echo "$LLVM_VER" | cut -d. -f1-2)"
+          PY_SHORT="$(echo "$PY_VER" | tr -d .)"
+          ASSET="omvll-ndk-termux-aarch64-llvm${LLVM_SHORT}-py${PY_SHORT}.so"
+          cp dist/omvll-ndk.so "dist/$ASSET"
+          (cd dist && sha256sum "$ASSET" omvll-ndk.so build-info.json > SHA256SUMS)
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+          ls -la dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: omvll-ndk-termux-aarch64
+          path: |
+            dist/omvll-ndk-termux-aarch64-*.so
+            dist/omvll-ndk.so
+            dist/build-info.json
+            dist/SHA256SUMS
+            dist/sample-omvll-config.py
+          retention-days: 30
+
+      - name: Publish GitHub Release (tag push / manual tag)
+        if: startsWith(github.ref, 'refs/tags/omvll-termux-') || inputs.release_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          name: "O-MVLL Termux plugin ${{ inputs.release_tag || github.ref_name }}"
+          body: |
+            Prebuilt `omvll-ndk.so` untuk clang Termux (aarch64, bionic).
+
+            Dipakai otomatis oleh `build.sh` mode cython:
+              AIO_OMVLL_GH_REPO=<owner>/<repo> bash build.sh aio-mod.py cython
+
+            Lihat `build-info.json` untuk versi LLVM/Python yang cocok.
+            Kalau Termux upgrade clang/Python dan probe gagal, re-run workflow ini.
+          files: |
+            dist/omvll-ndk-termux-aarch64-*.so
+            dist/omvll-ndk.so
+            dist/build-info.json
+            dist/SHA256SUMS
+          fail_on_unmatched_files: false
